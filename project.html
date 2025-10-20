@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnPy - Kumpulan Rumus Fisika Dasar</title>
+    <!-- Memuat Tailwind CSS CDN untuk styling modern dan responsif --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat MathJax untuk rendering rumus matematika yang indah --><script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <!-- [BARU] Memuat Lucide Icons untuk ikon SVG yang lebih baik --><script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Skema warna disesuaikan untuk mode gelap
+                        'primary-accent': '#4FC3F7', // Biru cerah
+                        'bg-dark': '#1F2937', 
+                        'card-dark': '#2C3E50', 
+                        'new-accent': '#2563EB', // Biru terang untuk light mode
+                    },
+                }
+            }
+        }
+        // --- DATA RUMUS DAN LOGIKA KALKULATOR ---
+        // Data terstruktur untuk 24 rumus yang memiliki fungsi kalkulator
+        const formulaData = {
+            // RUMUS LAMA (1-10)
+            // 1. Usaha
+            'usaha': {
+                title: 'Usaha (W)',
+                variables: [{ n: 'F', l: 'Gaya', u: 'N' }, { n: 's', l: 'Perpindahan', u: 'm' }],
+                output: { n: 'W', l: 'Usaha', u: 'Joule' },
+                calculate: ({ F, s }) => F * s
+            },
+            // 2. Kecepatan
+            'kecepatan': {
+                title: 'Kecepatan (v)',
+                variables: [{ n: 'ds', l: 'Perubahan Posisi', u: 'm' }, { n: 'dt', l: 'Waktu', u: 's' }],
+                output: { n: 'v', l: 'Kecepatan', u: 'm/s' },
+                calculate: ({ ds, dt }) => ds / dt
+            },
+            // 3. Percepatan
+            'percepatan': {
+                title: 'Percepatan (a)',
+                variables: [{ n: 'dv', l: 'Perubahan Kecepatan', u: 'm/s' }, { n: 'dt', l: 'Waktu', u: 's' }],
+                output: { n: 'a', l: 'Percepatan', u: 'm/s²' },
+                calculate: ({ dv, dt }) => dv / dt
+            },
+            // 4. Hukum Newton II (Gaya)
+            'newton2': {
+                title: 'Gaya (Hukum Newton II)',
+                variables: [{ n: 'm', l: 'Massa', u: 'kg' }, { n: 'a', l: 'Percepatan', u: 'm/s²' }],
+                output: { n: 'F', l: 'Gaya', u: 'Newton' },
+                calculate: ({ m, a }) => m * a
+            },
+            // 5. Energi Potensial
+            'ep': {
+                title: 'Energi Potensial (Ep)',
+                variables: [{ n: 'm', l: 'Massa', u: 'kg' }, { n: 'g', l: 'Gravitasi (g)', u: 'm/s²', default: 9.8 }, { n: 'h', l: 'Ketinggian', u: 'm' }],
+                output: { n: 'Ep', l: 'Energi Potensial', u: 'Joule' },
+                calculate: ({ m, g, h }) => m * g * h
+            },
+            // 6. Energi Kinetik
+            'ek': {
+                title: 'Energi Kinetik (Ek)',
+                variables: [{ n: 'm', l: 'Massa', u: 'kg' }, { n: 'v', l: 'Kecepatan', u: 'm/s' }],
+                output: { n: 'Ek', l: 'Energi Kinetik', u: 'Joule' },
+                calculate: ({ m, v }) => 0.5 * m * v * v
+            },
+            // 7. Energi Mekanik
+            'em': {
+                title: 'Energi Mekanik (Em)',
+                variables: [{ n: 'Ep', l: 'E. Potensial', u: 'Joule' }, { n: 'Ek', l: 'E. Kinetik', u: 'Joule' }],
+                output: { n: 'Em', l: 'Energi Mekanik', u: 'Joule' },
+                calculate: ({ Ep, Ek }) => Ep + Ek
+            },
+            // 8. Massa Jenis
+            'massa_jenis': {
+                title: 'Massa Jenis (ρ)',
+                variables: [{ n: 'm', l: 'Massa', u: 'kg' }, { n: 'V', l: 'Volume', u: 'm³' }],
+                output: { n: 'rho', l: 'Massa Jenis', u: 'kg/m³' },
+                calculate: ({ m, V }) => m / V
+            },
+            // 9. Tekanan Hidrostatis
+            'ph': {
+                title: 'Tekanan Hidrostatis (Ph)',
+                variables: [{ n: 'rho', l: 'Massa Jenis Fluida', u: 'kg/m³' }, { n: 'g', l: 'Gravitasi (g)', u: 'm/s²', default: 9.8 }, { n: 'h', l: 'Kedalaman', u: 'm' }],
+                output: { n: 'Ph', l: 'Tekanan Hidrostatis', u: 'Pascal' },
+                calculate: ({ rho, g, h }) => rho * g * h
+            },
+            // 10. Hukum Pascal
+            'pascal': {
+                title: 'Hukum Pascal (Hitung F2)',
+                variables: [{ n: 'F1', l: 'Gaya 1', u: 'N' }, { n: 'A1', l: 'Luas 1', u: 'm²' }, { n: 'A2', l: 'Luas 2', u: 'm²' }],
+                output: { n: 'F2', l: 'Gaya 2', u: 'Newton' },
+                calculate: ({ F1, A1, A2 }) => (F1 / A1) * A2
+            },
+            
+            // RUMUS BARU (11-24)
+            // 11. Impuls (I)
+            'impuls': {
+                title: 'Impuls (I)',
+                variables: [{ n: 'F', l: 'Gaya', u: 'N' }, { n: 'dt', l: 'Perubahan Waktu', u: 's' }],
+                output: { n: 'I', l: 'Impuls', u: 'Ns' },
+                calculate: ({ F, dt }) => F * dt
+            },
+            // 12. Momentum (p)
+            'momentum': {
+                title: 'Momentum (p)',
+                variables: [{ n: 'm', l: 'Massa', u: 'kg' }, { n: 'v', l: 'Kecepatan', u: 'm/s' }],
+                output: { n: 'p', l: 'Momentum', u: 'kg m/s' },
+                calculate: ({ m, v }) => m * v
+            },
+            // 13. Kalor (Q)
+            'kalor': {
+                title: 'Kalor (Q)',
+                variables: [{ n: 'm', l: 'Massa', u: 'kg' }, { n: 'c', l: 'Kalor Jenis', u: 'J/kg°C' }, { n: 'dT', l: 'Perubahan Suhu', u: '°C' }],
+                output: { n: 'Q', l: 'Kalor', u: 'Joule' },
+                calculate: ({ m, c, dT }) => m * c * dT
+            },
+            // 14. Hukum Snellius (Hitung Sudut Bias r)
+            'snellius': {
+                title: 'Hukum Snellius (Sudut Bias)',
+                variables: [
+                    { n: 'n1', l: 'Indeks Bias Medium 1', u: '' }, 
+                    { n: 'i', l: 'Sudut Datang', u: 'derajat' }, 
+                    { n: 'n2', l: 'Indeks Bias Medium 2', u: '' }
+                ],
+                output: { n: 'r', l: 'Sudut Bias', u: 'derajat' },
+                calculate: ({ n1, i, n2 }) => {
+                    // Konversi derajat ke radian untuk sin
+                    const sin_i = Math.sin(i * Math.PI / 180);
+                    const sin_r = (n1 * sin_i) / n2;
+                    // Cek batasan arcsin [-1, 1]
+                    if (sin_r > 1 || sin_r < -1) {
+                        throw new Error("Sudut tidak valid. n1 sin(i) / n2 harus antara -1 dan 1.");
+                    }
+                    // Hitung Sudut r dalam radian dan konversi kembali ke derajat
+                    return Math.asin(sin_r) * 180 / Math.PI;
+                }
+            },
+            // 15. Muatan Listrik (Q)
+            'muatan_listrik': {
+                title: 'Muatan Listrik (Q)',
+                variables: [{ n: 'I', l: 'Kuat Arus', u: 'Ampere' }, { n: 't', l: 'Waktu', u: 's' }],
+                output: { n: 'Q', l: 'Muatan Listrik', u: 'Coulomb' },
+                calculate: ({ I, t }) => I * t
+            },
+            // 16. Daya (P)
+            'daya': {
+                title: 'Daya (P)',
+                variables: [{ n: 'W', l: 'Usaha/Energi', u: 'Joule' }, { n: 't', l: 'Waktu', u: 's' }],
+                output: { n: 'P', l: 'Daya', u: 'Watt' },
+                calculate: ({ W, t }) => W / t
+            },
+            // 17. Tegangan Listrik (V) - Hukum Ohm
+            'tegangan_listrik': {
+                title: 'Tegangan Listrik (V)',
+                variables: [{ n: 'I', l: 'Kuat Arus', u: 'Ampere' }, { n: 'R', l: 'Hambatan', u: 'Ohm' }],
+                output: { n: 'V', l: 'Tegangan', u: 'Volt' },
+                calculate: ({ I, R }) => I * R
+            },
+            // 18. Tekanan (Umum) (P)
+            'tekanan_umum': {
+                title: 'Tekanan (P)',
+                variables: [{ n: 'F', l: 'Gaya', u: 'N' }, { n: 'A', l: 'Luas Permukaan', u: 'm²' }],
+                output: { n: 'P', l: 'Tekanan', u: 'Pascal' },
+                calculate: ({ F, A }) => F / A
+            },
+            // 19. Perioda Getaran (T)
+            'perioda_getaran': {
+                title: 'Perioda Getaran (T)',
+                variables: [{ n: 't', l: 'Waktu Total', u: 's' }, { n: 'n', l: 'Jumlah Getaran', u: 'kali' }],
+                output: { n: 'T', l: 'Perioda', u: 's' },
+                calculate: ({ t, n }) => t / n
+            },
+            // 20. Frekuensi Gelombang (f)
+            'frekuensi_gelombang': {
+                title: 'Frekuensi Gelombang (f)',
+                variables: [{ n: 'v', l: 'Cepat Rambat', u: 'm/s' }, { n: 'lambda', l: 'Panjang Gelombang', u: 'm' }],
+                output: { n: 'f', l: 'Frekuensi', u: 'Hz' },
+                calculate: ({ v, lambda }) => v / lambda
+            },
+            // 21. Gaya Coulomb (Fc)
+            'gaya_coulomb': {
+                title: 'Gaya Coulomb (Fc)',
+                variables: [
+                    { n: 'q1', l: 'Muatan 1', u: 'C' }, 
+                    { n: 'q2', l: 'Muatan 2', u: 'C' }, 
+                    { n: 'r', l: 'Jarak', u: 'm' }, 
+                    { n: 'k', l: 'Konstanta Coulomb (k)', u: 'Nm²/C²', default: 9e9 }
+                ],
+                output: { n: 'Fc', l: 'Gaya Coulomb', u: 'Newton' },
+                calculate: ({ q1, q2, r, k }) => k * q1 * q2 / (r * r)
+            },
+            // 22. Kalor Laten (Q)
+            'kalor_laten': {
+                title: 'Kalor Laten (Q)',
+                variables: [{ n: 'm', l: 'Massa', u: 'kg' }, { n: 'L', l: 'Kalor Laten', u: 'J/kg' }],
+                output: { n: 'Q', l: 'Kalor', u: 'Joule' },
+                calculate: ({ m, L }) => m * L
+            },
+            // 23. Gaya Archimedes (Fa)
+            'gaya_archimedes': {
+                title: 'Gaya Archimedes (Fa)',
+                variables: [{ n: 'rho', l: 'Massa Jenis Fluida', u: 'kg/m³' }, { n: 'g', l: 'Gravitasi (g)', u: 'm/s²', default: 9.8 }, { n: 'Vc', l: 'Volume Tercelup', u: 'm³' }],
+                output: { n: 'Fa', l: 'Gaya Archimedes', u: 'Newton' },
+                calculate: ({ rho, g, Vc }) => rho * g * Vc
+            },
+            // 24. Taraf Intensitas (TI)
+            'taraf_intensitas': {
+                title: 'Taraf Intensitas (TI)',
+                variables: [
+                    { n: 'I', l: 'Intensitas Bunyi', u: 'W/m²' }, 
+                    { n: 'I0', l: 'Intensitas Ambang (I₀)', u: 'W/m²', default: 1e-12 }
+                ],
+                output: { n: 'TI', l: 'Taraf Intensitas', u: 'dB' },
+                calculate: ({ I, I0 }) => 10 * Math.log10(I / I0)
+            },
+        };
+        const openCalculatorModal = (formulaId) => {
+            const data = formulaData[formulaId];
+            if (!data) return;
+            const modalTitle = document.getElementById('calculator-modal-title');
+            const modalBody = document.getElementById('calculator-modal-body');
+            const modal = document.getElementById('calculator-modal');
+            // Set judul
+            modalTitle.textContent = `Kalkulator: ${data.title}`;
+            
+            // Bersihkan body modal dan buat form
+            modalBody.innerHTML = '';
+            const form = document.createElement('form');
+            form.id = 'calculator-form';
+            form.className = 'space-y-4';
+            // Buat input untuk setiap variabel
+            data.variables.forEach(v => {
+                const isDarkMode = !document.body.classList.contains('light-mode');
+                const labelColor = isDarkMode ? 'text-gray-300' : 'text-gray-700';
+                const inputClass = isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white focus:ring-primary-accent' 
+                    : 'bg-white border-gray-300 text-gray-800 focus:ring-new-accent';
+                const div = document.createElement('div');
+                div.className = 'space-y-1';
+                div.innerHTML = `
+                    <label for="${v.n}" class="block text-sm font-medium ${labelColor}">${v.l} (${v.u || 'tanpa satuan'})</label>
+                    <input type="number" id="${v.n}" name="${v.n}" step="any" 
+                           value="${v.default || ''}" required 
+                           class="w-full px-4 py-2 border rounded-lg ${inputClass}">
+                `;
+                form.appendChild(div);
+            });
+            // Tambahkan area hasil
+            const resultArea = document.createElement('div');
+            resultArea.id = 'result-area';
+            resultArea.className = 'mt-6 p-4 rounded-lg bg-gray-800 text-center font-bold text-xl text-primary-accent transition duration-300';
+            modalBody.appendChild(form);
+            modalBody.appendChild(resultArea);
+            // Tampilkan modal
+            modal.classList.remove('hidden');
+            // Attach submit listener ke form
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                calculateResult(formulaId);
+            };
+        };
+        const calculateResult = (formulaId) => {
+            const data = formulaData[formulaId];
+            const form = document.getElementById('calculator-form');
+            const resultArea = document.getElementById('result-area');
+            const values = {};
+            // Kumpulkan nilai input
+            let valid = true;
+            data.variables.forEach(v => {
+                const inputElement = form.querySelector(`#${v.n}`);
+                // Parse float, jika gagal atau kosong, anggap tidak valid
+                const value = parseFloat(inputElement.value);
+                if (isNaN(value)) {
+                    valid = false;
+                    return;
+                }
+                values[v.n] = value;
+            });
+            if (!valid) {
+                 resultArea.innerHTML = `<span class="text-red-400"> Error: Isi semua nilai yang diperlukan!</span>`;
+                 return;
+            }
+            try {
+                // Lakukan perhitungan menggunakan fungsi calculate
+                const rawResult = data.calculate(values);
+                
+                if (typeof rawResult !== 'number' || isNaN(rawResult)) {
+                    throw new Error("Hasil perhitungan tidak valid.");
+                }
+                const result = rawResult.toFixed(4); // Pembulatan 4 angka desimal
+                
+                // Tampilkan hasil
+                resultArea.innerHTML = `
+                    <span class="text-sm font-normal block text-gray-400">Hasil ${data.output.l} (${data.output.n})</span>
+                    ${result} ${data.output.u}
+                `;
+                 // Update style untuk mode terang
+                 if (document.body.classList.contains('light-mode')) {
+                     resultArea.className = 'mt-6 p-4 rounded-lg bg-gray-100 border border-new-accent text-center font-bold text-xl text-new-accent transition duration-300';
+                 } else {
+                     resultArea.className = 'mt-6 p-4 rounded-lg bg-gray-800 text-center font-bold text-xl text-primary-accent transition duration-300';
+                 }
+            } catch (e) {
+                console.error("Calculation Error:", e);
+                resultArea.innerHTML = `<span class="text-red-400"> 🚨  Error: ${e.message || "Terjadi kesalahan saat menghitung."}</span>`;
+            }
+        };
+        const closeModal = () => {
+            document.getElementById('calculator-modal').classList.add('hidden');
+        };
+        // Fungsi untuk memperbarui ikon tombol tema
+        const updateThemeButton = (isLightMode) => {
+            const themeIcon = document.getElementById('theme-toggle-icon');
+            if (themeIcon) {
+                themeIcon.innerHTML = isLightMode 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>` 
+                    : `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`;
+            }
+        }
+        // Fungsi utama untuk mengganti tema
+        const toggleTheme = () => {
+            const body = document.body;
+            const isLightMode = body.classList.toggle('light-mode');
+            localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
+            updateThemeButton(isLightMode);
+        };
+        // Fungsi untuk memfilter kartu berdasarkan input pencarian
+        const filterCards = (searchTerm) => {
+            const cards = document.querySelectorAll('.formula-card-container');
+            const filter = searchTerm.toLowerCase();
+            cards.forEach(card => {
+                const textContent = card.innerText.toLowerCase();
+                
+                if (textContent.includes(filter)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        };
+        // Cek preferensi tema saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+            let isLightMode = savedTheme === 'light' || (!savedTheme && prefersLight);
+            if (isLightMode) {
+                document.body.classList.add('light-mode');
+            }
+            updateThemeButton(isLightMode);
+            // Pasang listener ke tombol tema
+            document.getElementById('theme-toggle-btn')?.addEventListener('click', toggleTheme);
+            
+            // Pasang listener ke input pencarian
+            document.getElementById('search-input')?.addEventListener('keyup', (e) => {
+                filterCards(e.target.value);
+            });
+            // Pasang listener ke semua kartu untuk membuka kalkulator
+            document.querySelectorAll('.formula-card-interactive').forEach(card => {
+                card.addEventListener('click', () => {
+                    const formulaId = card.getAttribute('data-formula-id');
+                    if (formulaId && formulaData[formulaId]) {
+                        openCalculatorModal(formulaId);
+                    }
+                });
+            });
+            // Pasang listener ke tombol tutup modal
+            document.getElementById('close-modal-btn')?.addEventListener('click', closeModal);
+            // Tutup modal jika mengklik di luar modal content
+            document.getElementById('calculator-modal')?.addEventListener('click', (e) => {
+                if (e.target.id === 'calculator-modal') {
+                    closeModal();
+                }
+            });
+
+            // [BARU] Inisialisasi semua ikon Lucide di halaman
+            lucide.createIcons();
+        });
+    </script>
+    <style>
+        /* --- DARK MODE (DEFAULT) STYLES --- */
+        /* Gradasi Gelap: Hitam ke Biru Tua */
+        body {
+            background: linear-gradient(135deg, #000000 0%, #172554 100%); 
+            background-attachment: fixed;
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: #e5e7eb; /* Light text for dark background */
+        }
+        .header-bg {
+            background-color: #1F2937; /* Latar belakang header gelap */
+        }
+        .formula-card {
+            background-color: #2C3E50; /* Navy Blue gelap */
+            color: #e5e7eb;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+            height: 100%; /* [PERBAIKAN] Menggunakan tinggi 100% agar kartu seragam tanpa crop */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Untuk mendorong footer/keterangan ke bawah */
+        }
+        .formula-card-interactive:hover {
+            cursor: pointer;
+            border: 2px solid #4FC3F7;
+        }
+        .formula-display {
+            background-color: rgba(255, 255, 255, 0.05); /* Sedikit transparan/lebih terang dari card */
+            border-left: 5px solid #4FC3F7; /* Biru muda cerah sebagai aksen */
+            color: #81D4FA; /* Warna rumus yang cerah */
+            /* Mengatur tampilan rumus agar terpusat dengan baik */
+            display: flex;
+            justify-content: center; 
+            align-items: center;
+        }
+        .text-link {
+            color: #9CA3AF; /* Warna link default */
+        }
+        .search-input-dark {
+            background-color: #374151;
+            border-color: #4B5563;
+            color: #FFFFFF;
+        }
+        .search-input-dark:focus {
+            box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.5); /* primary-accent shadow for dark mode */
+            border-color: #4FC3F7;
+        }
+        .icon-dark-mode {
+            color: #9CA3AF;
+        }
+        .modal-content {
+            background-color: #1F2937; /* Modal background dark */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            color: #e5e7eb;
+        }
+        .calculate-button-dark {
+            background-color: #4FC3F7;
+            color: #1F2937;
+        }
+        .calculate-button-dark:hover {
+            background-color: #03A9F4;
+        }
+        /* --- LIGHT MODE (OVERRIDE) STYLES --- */
+        body.light-mode {
+            /* Gradasi Terang: Biru Sangat Muda ke Putih */
+            background: linear-gradient(135deg, #E0F7FA 0%, #FFFFFF 100%); 
+            color: #1F2937; /* Dark text */
+        }
+        .light-mode .header-bg {
+            background-color: #FFFFFF;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .light-mode .formula-card {
+            background-color: #FFFFFF; /* White card/header */
+            color: #1F2937;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid #E5E7EB;
+        }
+        .light-mode .formula-card-interactive:hover {
+            border: 2px solid #2563EB;
+        }
+        .light-mode h3 {
+            color: #1F2937; /* Dark title */
+            border-bottom-color: #D1D5DB !important; /* Border pemisah lebih terang */
+        }
+        .light-mode .text-primary-accent {
+            color: #2563EB; /* Bright blue for accents (New Accent) */
+        }
+        .light-mode .text-gray-300,
+        .light-mode .text-gray-400 {
+            color: #4B5563;
+        }
+        .light-mode .formula-display {
+            background-color: #F3F4F6; /* Light gray box */
+            border-left-color: #2563EB;
+            color: #1D4ED8; /* Darker blue for formula */
+        }
+        .light-mode footer {
+            background-color: #E5E9EC;
+            color: #1F2937;
+            border-top-color: #D1D5DB;
+            box-shadow: none;
+        }
+        .light-mode .search-input-dark {
+            background-color: #FFFFFF;
+            border-color: #D1D5DB;
+            color: #1F2937;
+        }
+        .light-mode .search-input-dark:focus {
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.5); /* New light accent shadow */
+            border-color: #2563EB;
+        }
+        .light-mode .icon-dark-mode {
+            color: #6B7280;
+        }
+        .light-mode .modal-content {
+            background-color: #FFFFFF;
+            color: #1F2937;
+        }
+        .light-mode .calculate-button-dark {
+            background-color: #2563EB;
+            color: #FFFFFF;
+        }
+        .light-mode .calculate-button-dark:hover {
+            background-color: #1D4ED8;
+        }
+        
+        /* --- SHARED STYLES --- */
+        /* Icon Circle Style (Diperbarui untuk SVG) */
+        .card-icon {
+            width: 64px; 
+            height: 64px; 
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 1.25rem auto; 
+            color: white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            padding: 12px; 
+            box-sizing: border-box; 
+        }
+
+        .card-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke-width: 2; 
+        }
+
+        /* Style untuk area rumus MathJax */
+        .formula-display {
+            padding: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+        /* Efek Hover Card */
+        .card-effect:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35); 
+        }
+        /* Modal Overlay */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+<body class="selection:bg-primary-accent selection:text-white transition duration-300">
+    <!-- Header / Navbar --><header class="header-bg shadow-xl sticky top-0 z-20 transition duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            
+            <!-- Baris Atas (Judul, Navigasi, Toggle Tema) --><div class="flex justify-between items-center space-x-4">
+                <h1 class="text-3xl font-extrabold text-primary-accent transition duration-300">
+                    LearnPhy  ✨
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <nav class="hidden sm:block">
+                        <a href="#rumus" class="text-link hover:text-primary-accent px-3 py-2 rounded-md text-sm font-medium transition duration-150">Semua Rumus</a>
+                        <a href="#tentang" class="text-link hover:text-primary-accent px-3 py-2 rounded-md text-sm font-medium transition duration-150">About</a>
+                    </nav>
+                    <!-- TOMBOL GANTI TEMA --><button id="theme-toggle-btn" class="p-2 rounded-full text-primary-accent hover:bg-gray-700 transition duration-150" aria-label="Ganti Tema">
+                        <span id="theme-toggle-icon" class="w-6 h-6">
+                            <!-- Placeholder untuk ikon, diisi oleh JS --></span>
+                    </button>
+                </div>
+            </div>
+            <!-- Baris Bawah (Search Bar yang Diperbarui) --><div class="mt-4 relative">
+                <input type="text" id="search-input" placeholder="Cari rumus..." 
+                       class="w-full pl-12 pr-4 py-3 rounded-xl border-2 focus:outline-none focus:ring-3 focus:ring-primary-accent 
+                              search-input-dark shadow-lg transition duration-300 placeholder-gray-500">
+                <div class="absolute left-4 top-1/2 transform -translate-y-1/2 icon-dark-mode transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+            
+        </div>
+    </header>
+    <!-- Hero Section --><section class="text-center py-20 px-4">
+        <h2 class="text-5xl font-extrabold text-primary-accent transition duration-300">
+            Kumpulan Rumus Fisika 
+        </h2>
+        <p class="text-xl text-gray-300 max-w-3xl mx-auto transition duration-300">
+            Akses cepat dan ringkas ke puluhan rumus fisika. Coba dan hitung sekarang!
+        </p>
+    </section>
+    <!-- Card Grid Section --><main id="rumus" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <!-- Tata letak 4 kolom di desktop --><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            
+            <!-- Card 1: Usaha --><div class="formula-card-container">
+                <div data-formula-id="usaha" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-orange-500"><i data-lucide="settings-2"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Usaha (W)</h3>
+                    <div class="formula-display transition duration-300">$$W = F \cdot s \cdot \cos(\theta)$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>W : Usaha (Joule)</li>
+                        <li>F : Gaya (Newton)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 2: Kecepatan --><div class="formula-card-container">
+                <div data-formula-id="kecepatan" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-cyan-500"><i data-lucide="gauge-circle"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Kecepatan (v)</h3>
+                    <div class="formula-display transition duration-300">$$v = \frac{\Delta s}{\Delta t}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>v : Kecepatan (m/s)</li>
+                        <li>Δs : Perubahan posisi (m)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 3: Percepatan --><div class="formula-card-container">
+                <div data-formula-id="percepatan" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-green-500"><i data-lucide="rocket"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Percepatan (a)</h3>
+                    <div class="formula-display transition duration-300">$$a = \frac{\Delta v}{\Delta t}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>a : Percepatan (m/s²)</li>
+                        <li>Δv : Perubahan kecepatan (m/s)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 4: Hukum Newton II (Gaya) --><div class="formula-card-container">
+                <div data-formula-id="newton2" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-red-500"><i data-lucide="move"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Gaya (Hukum Newton II)</h3>
+                    <div class="formula-display transition duration-300">$$F = m \cdot a$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>F : Resultan gaya (Newton)</li>
+                        <li>m : Massa benda (kg)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 5: Energi Potensial --><div class="formula-card-container">
+                <div data-formula-id="ep" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-yellow-500"><i data-lucide="arrow-down-to-line"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Energi Potensial (Eₚ)</h3>
+                    <div class="formula-display transition duration-300">$$E_p = m \cdot g \cdot h$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Eₚ : Energi Potensial (Joule)</li>
+                        <li>m : Massa benda (kg)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 6: Energi Kinetik --><div class="formula-card-container">
+                <div data-formula-id="ek" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-indigo-500"><i data-lucide="wind"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Energi Kinetik (Eₖ)</h3>
+                    <div class="formula-display transition duration-300">$$E_k = \frac{1}{2} m v^2$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Eₖ : Energi Kinetik (Joule)</li>
+                        <li>v : Kecepatan benda (m/s)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 7: Energi Mekanik --><div class="formula-card-container">
+                <div data-formula-id="em" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-teal-500"><i data-lucide="recycle"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Energi Mekanik (Eₘ)</h3>
+                    <div class="formula-display transition duration-300">$$E_m = E_p + E_k$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Eₘ : Energi Mekanik (Joule)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 8: Massa Jenis --><div class="formula-card-container">
+                <div data-formula-id="massa_jenis" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-orange-400"><i data-lucide="cuboid"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Massa Jenis (ρ)</h3>
+                    <div class="formula-display transition duration-300">$$\rho = \frac{m}{V}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>ρ: Massa Jenis (kg/m³)</li>
+                        <li>V : Volume benda (m³)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 9: Tekanan Hidrostatis --><div class="formula-card-container">
+                <div data-formula-id="ph" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-pink-500"><i data-lucide="waves"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Tekanan Hidrostatis (Pₕ)</h3>
+                    <div class="formula-display transition duration-300">$$P_h = \rho \cdot g \cdot h$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Pₕ : Tekanan (Pascal)</li>
+                        <li>h : Kedalaman (meter)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 10: Hukum Pascal --><div class="formula-card-container">
+                <div data-formula-id="pascal" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-purple-500"><i data-lucide="ratio"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Hukum Pascal</h3>
+                    <div class="formula-display transition duration-300">$$\frac{F_1}{A_1} = \frac{F_2}{A_2}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>F : Gaya (Newton)</li>
+                        <li>A : Luas permukaan (m)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 11: Impuls --><div class="formula-card-container">
+                <div data-formula-id="impuls" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-lime-500"><i data-lucide="move-right"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Impuls (I)</h3>
+                    <div class="formula-display transition duration-300">$$I = F \cdot \Delta t$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>I : Impuls (Ns)</li>
+                        <li>F : Gaya (Newton)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 12: Momentum --><div class="formula-card-container">
+                <div data-formula-id="momentum" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-yellow-600"><i data-lucide="bring-to-front"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Momentum (p)</h3>
+                    <div class="formula-display transition duration-300">$$p = m \cdot v$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>p : Momentum (kg m/s)</li>
+                        <li>m :* Massa benda (kg)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 13: Kalor --><div class="formula-card-container">
+                <div data-formula-id="kalor" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-fuchsia-500"><i data-lucide="flame"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Kalor (Q)</h3>
+                    <div class="formula-display transition duration-300">$$Q = m \cdot c \cdot \Delta T$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Q : Kalor (Joule)</li>
+                        <li>c : Kalor jenis (J/kg)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 14: Hukum Snellius --><div class="formula-card-container">
+                <div data-formula-id="snellius" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-sky-500"><i data-lucide="spline"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Hukum Snellius</h3>
+                    <div class="formula-display transition duration-300">$$n_1 \cdot \sin(i) = n_2 \cdot \sin(r)$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>n : Indeks bias medium</li>
+                        <li>i: Sudut datang</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 15: Muatan Listrik --><div class="formula-card-container">
+                <div data-formula-id="muatan_listrik" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-gray-500"><i data-lucide="bolt"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Muatan Listrik (Q)</h3>
+                    <div class="formula-display transition duration-300">$$Q = I \cdot t$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Q : Muatan Listrik (Coulomb)</li>
+                        <li>I : Kuat Arus (Ampere)</li>
+                    </ul>
+                </div>
+            </div>
+             <!-- Card 16: Daya --><div class="formula-card-container">
+                <div data-formula-id="daya" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-red-700"><i data-lucide="power"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Daya (P)</h3>
+                    <div class="formula-display transition duration-300">$$P = \frac{W}{t}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>P : Daya (Watt)</li>
+                        <li>W : Usaha (Joule)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Card 17: Tegangan Listrik / Hukum Ohm --><div class="formula-card-container">
+                <div data-formula-id="tegangan_listrik" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-blue-600"><i data-lucide="activity"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Tegangan Listrik (V)</h3>
+                    <div class="formula-display transition duration-300">$$V = I \cdot R$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>V : Tegangan (Volt)</li>
+                        <li>R : Hambatan (Ω)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 18: Tekanan (Umum) --><div class="formula-card-container">
+                <div data-formula-id="tekanan_umum" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-gray-600"><i data-lucide="arrow-down-square"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Tekanan (P)</h3>
+                    <div class="formula-display transition duration-300">$$P = \frac{F}{A}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>P : Tekanan (Pascal)</li>
+                        <li>F : Gaya (Newton)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 19: Perioda Getaran --><div class="formula-card-container">
+                <div data-formula-id="perioda_getaran" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-amber-500"><i data-lucide="timer"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Perioda Getaran (T)</h3>
+                    <div class="formula-display transition duration-300">$$T = \frac{t}{n} \quad \text{atau} \quad T = \frac{1}{f}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>T : Perioda (sekon)</li>
+                        <li>f : Frekuensi (Hz)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 20: Frekuensi Gelombang --><div class="formula-card-container">
+                <div data-formula-id="frekuensi_gelombang" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-lime-700"><i data-lucide="waveform"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Frekuensi Gelombang (f)</h3>
+                    <div class="formula-display transition duration-300">$$f = \frac{v}{\lambda}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>f : Frekuensi (Hz)</li>
+                        <li>λ : Panjang gelombang (m)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 21: Hukum Coulomb --><div class="formula-card-container">
+                <div data-formula-id="gaya_coulomb" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-pink-700"><i data-lucide="atom"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Gaya Coulomb (Fₑ)</h3>
+                    <div class="formula-display transition duration-300">$$F_c = k \frac{q_1 q_2}{r^2}$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Fₑ : Gaya Coulomb (Newton)</li>
+                        <li>q : Muatan Listrik (Coulomb)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 22: Kalor Laten --><div class="formula-card-container">
+                <div data-formula-id="kalor_laten" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-purple-700"><i data-lucide="snowflake"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Kalor Laten (Q)</h3>
+                    <div class="formula-display transition duration-300">$$Q = m \cdot L$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Q : Kalor (Joule)</li>
+                        <li>L : Kalor Laten (J/kg)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 23: Gaya Archimedes --><div class="formula-card-container">
+                <div data-formula-id="gaya_archimedes" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-indigo-700"><i data-lucide="anchor"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Gaya Archimedes (Fₐ)</h3>
+                    <div class="formula-display transition duration-300">$$F_a = \rho \cdot g \cdot V_c$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>Fₐ : Gaya ke atas (Newton)</li>
+                        <li>ρ : Massa Jenis Fluida (kg/m³)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Card 24: Taraf Intensitas Bunyi --><div class="formula-card-container">
+                <div data-formula-id="taraf_intensitas" class="formula-card relative p-6 rounded-xl card-effect transition duration-300 text-center formula-card-interactive">
+                    <div class="absolute top-4 right-4 text-gray-400" title="Kalkulator Tersedia"><i data-lucide="calculator" class="w-5 h-5"></i></div>
+                    <div class="card-icon bg-cyan-700"><i data-lucide="volume-2"></i></div>
+                    <h3 class="text-lg font-bold mb-3 text-primary-accent border-b pb-2 border-gray-700 transition duration-300">Taraf Intensitas (TI)</h3>
+                    <div class="formula-display transition duration-300">$$TI = 10 \cdot \log \left( \frac{I}{I_0} \right)$$</div>
+                    <p class="text-sm font-semibold text-primary-accent mt-4 transition duration-300">Keterangan:</p>
+                    <ul class="list-disc list-inside text-gray-400 text-sm mt-2 space-y-1 text-left mx-auto max-w-fit transition duration-300">
+                        <li>TI : Taraf Intensitas (dB)</li>
+                        <li>I : Intensitas bunyi (W/m²)</li>
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+    <!-- Modal Kalkulator (Hidden by default) --><div id="calculator-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-4 transition-opacity duration-300">
+        <div class="modal-content w-full max-w-lg mx-auto rounded-xl p-6 md:p-8 transform transition-all duration-300" onclick="event.stopPropagation()">
+            
+            <!-- Header Modal --><div class="flex justify-between items-center pb-4 border-b border-gray-600/50 mb-6">
+                <h3 id="calculator-modal-title" class="text-2xl font-bold text-primary-accent">
+                    Kalkulator Rumus
+                </h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-primary-accent transition" aria-label="Tutup">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Body Modal (Form Kalkulator Dinamis) --><div id="calculator-modal-body">
+                <!-- Konten form akan dimuat di sini oleh JavaScript --></div>
+            <!-- Footer Modal (Tombol Hitung) --><div class="pt-6 mt-4 border-t border-gray-600/50">
+                <button type="submit" form="calculator-form" class="w-full py-3 rounded-lg font-semibold calculate-button-dark shadow-md hover:shadow-lg transition duration-200">
+                    HITUNG HASIL
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Footer --><footer id="tentang" class="header-bg text-white text-center p-6 border-t border-gray-700 transition duration-300">
+        <p class="text-lg font-medium">&copy; 2025 LearnPhysics - Portal Rumus Fisika</p>
+    </footer>
+</body>
+</html>
+
